@@ -1,0 +1,309 @@
+/* ==========================================================================
+   Modals & Dialogs
+   ========================================================================== */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(26, 20, 20, 0.8);
+  backdrop-filter: blur(4px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-normal);
+}
+
+.modal-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.modal-box {
+  background-color: #FFFFFF;
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-xl);
+  width: 90%;
+  max-width: 700px;
+  max-height: 85vh;
+  overflow-y: auto;
+  transform: translateY(20px);
+  transition: transform var(--transition-normal);
+  border: 1px solid var(--border);
+}
+
+.modal-overlay.active .modal-box {
+  transform: translateY(0);
+}
+
+.modal-header {
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: var(--text-light);
+  transition: var(--transition-fast);
+  width: 32px;
+  height: 32px;
+  border-radius: var(--border-radius-full);
+}
+
+.modal-close:hover {
+  background-color: var(--brand-light);
+  color: var(--brand);
+}
+
+.modal-body {
+  padding: 2rem;
+}
+
+.modal-footer {
+  padding: 1.25rem 2rem;
+  border-top: 1px solid var(--border);
+  background-color: var(--bg-main);
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  border-bottom-left-radius: var(--border-radius-lg);
+  border-bottom-right-radius: var(--border-radius-lg);
+}
+
+/* ==========================================================================
+   Toast Notifications
+   ========================================================================== */
+.toast-container {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  z-index: 3000;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 420px;
+  width: 100%;
+}
+
+.toast {
+  background-color: #FFFFFF;
+  color: var(--text-main);
+  border-radius: var(--border-radius-md);
+  padding: 1rem 1.25rem;
+  box-shadow: var(--shadow-xl);
+  border-left: 4px solid var(--brand);
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  transform: translateY(20px);
+  opacity: 0;
+  animation: slideIn 0.35s forwards cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 0.3s, transform 0.3s;
+}
+
+.toast.success {
+  border-left-color: #16A34A;
+}
+
+.toast.error {
+  border-left-color: var(--danger);
+}
+
+.toast.info {
+  border-left-color: var(--brand);
+}
+
+.toast-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.toast.success .toast-icon {
+  color: #16A34A;
+}
+
+.toast.error .toast-icon {
+  color: var(--danger);
+}
+
+.toast.info .toast-icon {
+  color: var(--brand);
+}
+
+.toast-content {
+  flex-grow: 1;
+}
+
+.toast-title {
+  font-weight: 700;
+  font-size: 0.95rem;
+  margin-bottom: 0.2rem;
+  color: var(--text-main);
+}
+
+.toast-desc {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.toast-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-light);
+  font-size: 1.1rem;
+}
+
+.toast-close:hover {
+  color: var(--text-muted);
+}
+
+@keyframes slideIn {
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* ==========================================================================
+   Spinners & Skeletons (Loading animations)
+   ========================================================================== */
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3.5px solid rgba(37, 99, 235, 0.15);
+  border-radius: var(--border-radius-full);
+  border-top-color: var(--brand);
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Page Loader Layout */
+.page-loader {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: #FFFFFF;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.page-loader.fade-out {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.page-loader-text {
+  font-family: var(--font-headings);
+  font-weight: 600;
+  color: #000000;
+  font-size: 1.1rem;
+  letter-spacing: 0.05em;
+}
+
+/* Skeleton loader animations */
+.skeleton {
+  background: linear-gradient(90deg, var(--brand-light) 25%, var(--bg-main) 50%, var(--brand-light) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+  border-radius: var(--border-radius-sm);
+}
+
+.skeleton-text {
+  height: 1rem;
+  width: 100%;
+  margin-bottom: 0.5rem;
+}
+
+.skeleton-title {
+  height: 1.5rem;
+  width: 60%;
+  margin-bottom: 1rem;
+}
+
+.skeleton-circle {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--border-radius-full);
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Responsive tweaks for components (tablet & mobile) */
+@media (max-width: 768px) {
+  .toast-container {
+    right: 1rem;
+    left: 1rem;
+    bottom: 1rem;
+    max-width: calc(100% - 2rem);
+  }
+
+  .modal-box {
+    max-width: calc(100% - 2rem);
+    margin: 0.5rem auto;
+    padding: 1rem;
+  }
+
+  .page-loader {
+    transform: scale(0.95);
+  }
+}
+
+@media (max-width: 480px) {
+  .toast {
+    padding: 0.6rem 0.75rem;
+    font-size: 0.9rem;
+    border-radius: 8px;
+  }
+
+  .modal-close {
+    top: 0.5rem;
+    right: 0.5rem;
+  }
+
+  .spinner {
+    width: 36px;
+    height: 36px;
+  }
+
+  .skeleton-circle {
+    width: 40px;
+    height: 40px;
+  }
+}

@@ -1,0 +1,584 @@
+/* ==========================================================================
+   Multi-Step Wizard Progress Stepper
+   ========================================================================== */
+.wizard-header {
+  margin-bottom: 3rem;
+  text-align: center;
+}
+
+.wizard-progress {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  max-width: 650px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.wizard-progress::before {
+  content: '';
+  position: absolute;
+  top: 24px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background-color: var(--border);
+  z-index: 1;
+}
+
+.progress-bar-fill {
+  position: absolute;
+  top: 24px;
+  left: 0;
+  height: 3px;
+  background-color: var(--brand);
+  z-index: 2;
+  width: 0%;
+  transition: width var(--transition-normal);
+}
+
+.step-node {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.node-circle {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--border-radius-full);
+  background-color: #FFFFFF;
+  border: 3px solid var(--border);
+  color: var(--text-muted);
+  font-weight: 700;
+  font-size: 1rem;
+  transition: var(--transition-normal);
+}
+
+.step-node.active .node-circle {
+  border-color: var(--brand);
+  background-color: var(--brand);
+  color: white;
+  box-shadow: 0 0 0 5px rgba(37, 99, 235, 0.15);
+}
+
+.step-node.completed .node-circle {
+  border-color: var(--success);
+  background-color: var(--success);
+  color: white;
+}
+
+.node-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  transition: var(--transition-normal);
+  text-align: center;
+}
+
+.step-node.active .node-label {
+  color: var(--brand);
+  font-weight: 700;
+}
+
+.step-node.completed .node-label {
+  color: var(--success);
+}
+
+/* ==========================================================================
+   Form Card Layout
+   ========================================================================== */
+.form-wizard-card {
+  background-color: #FFFFFF;
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-xl);
+  border: 1px solid var(--border);
+  max-width: 800px;
+  margin: 0 auto;
+  overflow: hidden;
+}
+
+.form-step-content {
+  padding: 3rem;
+  display: none;
+}
+
+.form-step-content.active {
+  display: block;
+  animation: fadeIn 0.4s ease forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.step-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-main);
+}
+
+.step-title svg {
+  color: var(--brand);
+}
+
+/* ==========================================================================
+   Form Fields
+   ========================================================================== */
+.input-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+.input-full {
+  grid-column: span 2;
+}
+
+.form-field {
+  margin-bottom: 1rem;
+}
+
+.form-field label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-main);
+  margin-bottom: 0.5rem;
+}
+
+.form-field label .required {
+  color: var(--danger);
+  margin-left: 2px;
+}
+
+/* Input validation error styling */
+.form-field.invalid .form-control {
+  border-color: var(--danger);
+  background-color: var(--danger-light);
+}
+
+.error-text {
+  display: none;
+  font-size: 0.75rem;
+  color: var(--danger);
+  margin-top: 0.35rem;
+  font-weight: 500;
+}
+
+.form-field.invalid .error-text {
+  display: block;
+}
+
+/* Custom Select Dropdowns */
+select.form-control {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%23b0b0b0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>');
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 1.25rem;
+  padding-right: 2.75rem;
+  min-height: 52px;
+  line-height: 1.3;
+}
+
+/* Gender Radio Container */
+.radio-group {
+  display: flex;
+  gap: 1.5rem;
+  padding: 0.75rem 0;
+}
+
+.radio-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.radio-label input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--brand);
+}
+
+/* ==========================================================================
+   Document Upload Zone
+   ========================================================================== */
+.upload-zone {
+  border: 2px dashed var(--border);
+  border-radius: var(--border-radius-md);
+  padding: 2.5rem 2rem;
+  text-align: center;
+  background-color: var(--bg-main);
+  cursor: pointer;
+  transition: var(--transition-normal);
+  position: relative;
+}
+
+.upload-zone:hover, .upload-zone.dragover {
+  border-color: var(--brand);
+  background-color: var(--brand-light);
+}
+
+.upload-icon {
+  color: var(--brand);
+  margin-bottom: 1rem;
+}
+
+.upload-zone p {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin-bottom: 0.25rem;
+}
+
+.upload-zone p strong {
+  color: var(--brand);
+}
+
+.upload-zone span {
+  font-size: 0.75rem;
+  color: var(--text-light);
+}
+
+.file-input-hidden {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* Uploaded file badge preview */
+.file-preview-card {
+  display: none;
+  align-items: center;
+  gap: 1rem;
+  background-color: var(--bg-main);
+  border: 1px solid var(--border);
+  border-radius: var(--border-radius-md);
+  padding: 1rem;
+  margin-top: 1rem;
+}
+
+.file-preview-card.active {
+  display: flex;
+  animation: fadeIn var(--transition-fast) forwards;
+}
+
+.file-preview-icon {
+  color: var(--brand);
+}
+
+.file-preview-info {
+  flex-grow: 1;
+}
+
+.file-preview-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-main);
+  max-width: 250px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-preview-size {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.file-preview-remove {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--danger);
+  padding: 0.25rem;
+  border-radius: var(--border-radius-full);
+}
+
+.file-preview-remove:hover {
+  background-color: var(--danger-light);
+}
+
+/* ==========================================================================
+   Review & Summary Panels
+   ========================================================================== */
+.review-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.review-section {
+  border: 1px solid var(--border);
+  border-radius: var(--border-radius-md);
+  overflow: hidden;
+}
+
+.review-section-header {
+  background-color: var(--bg-main);
+  padding: 0.75rem 1.25rem;
+  font-weight: 700;
+  font-size: 0.9rem;
+  border-bottom: 1px solid var(--border);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--brand);
+}
+
+.review-section-body {
+  padding: 1.25rem;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.review-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.review-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.review-val {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--text-main);
+}
+
+.review-item.full-width {
+  grid-column: span 2;
+}
+
+/* ==========================================================================
+   Form Actions Footer
+   ========================================================================== */
+.form-wizard-footer {
+  padding: 1.5rem 3rem;
+  background-color: var(--bg-main);
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+}
+
+/* ==========================================================================
+   Wizard Success Screen
+   ========================================================================== */
+.success-screen {
+  text-align: center;
+  padding: 4rem 2rem;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.success-icon-wrap {
+  width: 80px;
+  height: 80px;
+  background-color: var(--success-light);
+  color: var(--success);
+  border-radius: var(--border-radius-full);
+  margin: 0 auto 2rem auto;
+  font-size: 2.5rem;
+  box-shadow: 0 10px 20px rgba(22, 163, 74, 0.15);
+}
+
+.success-screen h2 {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.success-screen p {
+  color: var(--text-muted);
+  margin-bottom: 2rem;
+}
+
+.app-id-badge {
+  background-color: var(--brand-light);
+  border: 1px dashed var(--brand);
+  padding: 1rem 1.5rem;
+  border-radius: var(--border-radius-md);
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 2.5rem;
+}
+
+.app-id-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.app-id-val {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--brand);
+  font-family: var(--font-headings);
+}
+
+.success-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* Email Sent Preview Alert Box */
+.email-sim-box {
+  background-color: #f0fdf4;
+  border: 1px solid #c9f7d7;
+  border-radius: var(--border-radius-md);
+  padding: 1.25rem;
+  margin-bottom: 2rem;
+  text-align: left;
+}
+
+.email-sim-header {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #166534;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.email-sim-body {
+  font-size: 0.85rem;
+  color: var(--text-main);
+  line-height: 1.5;
+  white-space: pre-line;
+}
+
+/* ==========================================================================
+   Responsive Adaptations
+   ========================================================================== */
+@media (max-width: 768px) {
+  .form-step-content {
+    padding: 2rem;
+    overflow: visible;
+  }
+  
+  .form-wizard-card {
+    overflow: visible;
+  }
+  
+  .form-wizard-footer {
+    padding: 1.25rem 2rem;
+  }
+  
+  .input-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .input-full {
+    grid-column: span 1;
+  }
+  
+  .review-section-body {
+    grid-template-columns: 1fr;
+  }
+  
+  .review-item.full-width {
+    grid-column: span 1;
+  }
+
+  .form-field {
+    position: relative;
+    z-index: 2;
+  }
+
+  select.form-control {
+    min-height: 180px;
+    font-size: 0.95rem;
+    padding: 0.85rem 1rem;
+    background-image: none;
+    appearance: auto;
+    -webkit-appearance: auto;
+    overflow-y: auto;
+  }
+
+  .node-label {
+    display: none; /* Hide step labels on mobile to prevent overlapping */
+  }
+
+  .wizard-progress {
+    max-width: 320px;
+  }
+}
+
+/* Extra mobile tweaks for the multi-step wizard */
+@media (max-width: 480px) {
+  .node-circle {
+    width: 40px;
+    height: 40px;
+    font-size: 0.9rem;
+  }
+
+  .wizard-progress {
+    max-width: 260px;
+    margin: 0 auto;
+  }
+
+  .form-step-content {
+    padding: 1.25rem;
+    overflow: visible;
+  }
+
+  .form-wizard-card {
+    max-width: 100%;
+    margin: 0 0.5rem;
+    overflow: visible;
+  }
+
+  .form-control {
+    font-size: 0.95rem;
+    padding: 0.7rem 0.95rem;
+  }
+
+  select.form-control {
+    min-height: 180px;
+    padding: 0.85rem 1rem;
+    background-image: none;
+    appearance: auto;
+    -webkit-appearance: auto;
+    overflow-y: auto;
+  }
+
+  .input-grid {
+    grid-template-columns: 1fr;
+  }
+}

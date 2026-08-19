@@ -1,0 +1,52 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap');
+
+ :root {
+  /* Color Palette - Professional Corporate Theme */
+  --primary: #0F172A;       /* Slate 900 - Deep, professional dark for headings */
+  --primary-light: #334155; /* Slate 700 */
+  --brand: #2563EB;         /* Blue 600 - Trustworthy corporate blue */
+  --brand-hover: #1D4ED8;   /* Blue 700 - Hover state */
+  --brand-light: #EFF6FF;   /* Blue 50 - Subtle blue tint */
+  --accent: #0D9488;        /* Teal 600 - Sophisticated accent */
+  --accent-hover: #0F766E;  /* Teal 700 */
+  --success: #059669;       /* Emerald 600 - Professional success */
+  --success-light: #D1FAE5; /* Emerald 50 */
+  --warning: #D97706;       /* Amber 600 - Professional warning */
+  --warning-light: #FEF3C7; /* Amber 50 */
+  --danger: #DC2626;        /* Red 600 - Professional error */
+  --danger-light: #FEE2E2;  /* Red 50 */
+
+  /* Background and Text Colors */
+  --bg-main: #FFFFFF;       /* Pure white background */
+  --bg-card: #F8FAFC;       /* Very subtle slate tint for cards to separate from background */
+  --text-main: #1E293B;     /* Slate 800 - Highly readable dark text */
+  --text-muted: #64748B;    /* Slate 500 - Professional muted text */
+  --text-light: #94A3B8;    /* Slate 400 - Light gray text */
+
+  /* Borders */
+  --border: #E2E8F0;
+  --border-focus: var(--brand);
+
+  /* Typography */
+  --font-headings: 'Inter', sans-serif; /* Using Inter for headings as well for a cleaner, uniform professional look */
+  --font-body: 'Inter', sans-serif;
+
+  /* Layout Settings */
+  --max-width: 1280px;
+  /* Reduced border radii for a sharper, more professional look */
+  --border-radius-sm: 4px;
+  --border-radius-md: 6px;
+  --border-radius-lg: 12px;
+  --border-radius-full: 9999px;
+
+  /* Shadows - Crisp and subtle for a professional feel */
+  --shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.08), 0 2px 4px -1px rgba(15, 23, 42, 0.04);
+  --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -2px rgba(15, 23, 42, 0.04);
+  --shadow-xl: 0 20px 25px -5px rgba(15, 23, 42, 0.08), 0 10px 10px -5px rgba(15, 23, 42, 0.04);
+
+  /* Transitions */
+  --transition-fast: 0.15s ease-in-out;
+  --transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}

@@ -1,0 +1,533 @@
+/* ==========================================================================
+   Admin Dashboard Navigation & Top Bar
+   ========================================================================== */
+.admin-navbar {
+  background-color: var(--primary);
+  color: white;
+  height: 70px;
+  border-bottom: 3px solid var(--brand);
+}
+
+.admin-nav-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 100%;
+}
+
+.admin-logo {
+  font-family: var(--font-headings);
+  font-weight: 700;
+  font-size: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: white;
+}
+
+.admin-profile {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.admin-badge {
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--border-radius-sm);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+}
+
+/* ==========================================================================
+   Statistics Grid Panels
+   ========================================================================== */
+.stats-container {
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  background-color: #FFFFFF;
+  border-radius: var(--border-radius-md);
+  padding: 1.75rem;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.stat-card-details h4 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  color: #f25454;
+  margin-bottom: 0.5rem;
+  letter-spacing: 0.05em;
+}
+
+.stat-card-details .count {
+  font-size: 2.25rem;
+  font-weight: 800;
+  color: #000000;
+  line-height: 1.1;
+  font-family: var(--font-headings);
+}
+
+.stat-card-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: var(--border-radius-md);
+  color: var(--brand);
+  background-color: var(--brand-light);
+  font-size: 1.5rem;
+}
+
+.stat-card.approved .stat-card-icon {
+  color: var(--success);
+  background-color: var(--success-light);
+}
+
+.stat-card.pending .stat-card-icon {
+  color: var(--warning);
+  background-color: var(--warning-light);
+}
+
+.stat-card.rejected .stat-card-icon {
+  color: var(--danger);
+  background-color: var(--danger-light);
+}
+
+/* ==========================================================================
+   Search, Filter, & Options Toolbar
+   ========================================================================== */
+.toolbar-card {
+  background-color: #FFFFFF;
+  border-radius: var(--border-radius-md);
+  padding: 1.5rem;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 2rem;
+}
+
+.toolbar-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 1rem;
+  align-items: center;
+}
+
+.search-input-wrap {
+  position: relative;
+}
+
+.search-input-wrap input {
+  padding-left: 2.75rem;
+}
+
+.search-input-icon {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-light);
+}
+
+/* ==========================================================================
+   Data Table Styling
+   ========================================================================== */
+.table-card {
+  background-color: #FFFFFF;
+  border-radius: var(--border-radius-lg);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+}
+
+.table-responsive {
+  overflow-x: auto;
+  width: 100%;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.admin-table th {
+  background-color: var(--bg-main);
+  padding: 1rem 1.5rem;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  color: #000000;
+  border-bottom: 1px solid var(--border);
+}
+
+.admin-table td {
+  padding: 1rem 1.5rem;
+  font-size: 0.9rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-main);
+  vertical-align: middle;
+}
+
+.admin-table tr:hover td {
+  background-color: var(--brand-light);
+}
+
+/* Status Badges */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  border-radius: var(--border-radius-full);
+}
+
+.status-badge.pending {
+  background-color: var(--warning-light);
+  color: var(--warning);
+}
+
+.status-badge.approved {
+  background-color: var(--success-light);
+  color: var(--success);
+}
+
+.status-badge.rejected {
+  background-color: var(--danger-light);
+  color: var(--danger);
+}
+
+/* Table Button Actions Group */
+.table-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.action-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--border-radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-main);
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: var(--transition-fast);
+}
+
+.action-btn:hover {
+  background-color: var(--brand-light);
+  color: var(--brand);
+}
+
+.action-btn.btn-approve:hover {
+  background-color: var(--success-light);
+  color: var(--success);
+  border-color: var(--success);
+}
+
+.action-btn.btn-reject:hover {
+  background-color: var(--danger-light);
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.action-btn.btn-view:hover {
+  background-color: var(--brand-light);
+  color: var(--brand);
+  border-color: var(--brand);
+}
+
+/* Empty data placeholder row style */
+.empty-table-placeholder {
+  text-align: center;
+  padding: 3rem !important;
+  color: var(--text-light);
+}
+
+.empty-table-placeholder svg {
+  margin: 0 auto 1rem auto;
+  color: var(--text-light);
+}
+
+/* ==========================================================================
+   Details Modal Custom Styling
+   ========================================================================== */
+.modal-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.modal-section-title {
+  grid-column: span 2;
+  font-size: 1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 2px solid var(--border);
+  padding-bottom: 0.35rem;
+  margin-top: 1rem;
+  color: var(--brand);
+}
+
+.modal-data-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.modal-data-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.modal-data-val {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--text-main);
+}
+
+.modal-data-row.full-width {
+  grid-column: span 2;
+}
+
+.modal-file-preview {
+  background-color: var(--bg-main);
+  border: 1px solid var(--border);
+  border-radius: var(--border-radius-md);
+  padding: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  grid-column: span 2;
+}
+
+.modal-file-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.modal-file-icon {
+  color: var(--brand);
+}
+
+/* ==========================================================================
+   Admin Email Log Panel Styles
+   ========================================================================== */
+.tab-container {
+  margin-top: 3rem;
+  background-color: var(--bg-card);
+  border-radius: var(--border-radius-lg);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+}
+
+.tab-header {
+  background-color: var(--bg-main);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+}
+
+.tab-btn {
+  padding: 1.25rem 2rem;
+  border: none;
+  background: none;
+  font-family: var(--font-headings);
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  color: var(--text-muted);
+  border-bottom: 2px solid transparent;
+  transition: var(--transition-fast);
+}
+
+.tab-btn:hover {
+  color: var(--primary);
+}
+
+.tab-btn.active {
+  color: var(--brand);
+  border-bottom-color: var(--brand);
+  background-color: white;
+}
+
+.tab-content {
+  padding: 2.5rem;
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+/* Email items list */
+.email-log-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.email-log-item {
+  border: 1px solid var(--border);
+  border-radius: var(--border-radius-md);
+  padding: 1.25rem;
+  background-color: var(--bg-card);
+  transition: var(--transition-fast);
+}
+
+.email-log-item:hover {
+  border-color: rgba(220, 39, 26, 0.2);
+  box-shadow: var(--shadow-sm);
+}
+
+.email-log-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.email-log-subject {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--primary);
+}
+
+.email-log-date {
+  font-size: 0.75rem;
+  color: var(--text-light);
+}
+
+.email-log-to {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.email-log-body {
+  font-size: 0.85rem;
+  color: var(--text-main);
+  background-color: var(--bg-main);
+  padding: 1rem;
+  border-radius: var(--border-radius-sm);
+  white-space: pre-line;
+  border: 1px solid var(--border);
+}
+
+/* ==========================================================================
+   Responsive Adaptations
+   ========================================================================== */
+@media (max-width: 1024px) {
+  .toolbar-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .search-input-wrap {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 768px) {
+  .admin-navbar {
+    height: auto;
+    padding: 1rem 0;
+  }
+  .admin-nav-container {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .toolbar-grid {
+    grid-template-columns: 1fr;
+  }
+  .search-input-wrap {
+    grid-column: span 1;
+  }
+  .modal-grid {
+    grid-template-columns: 1fr;
+  }
+  .modal-section-title {
+    grid-column: span 1;
+  }
+  .modal-file-preview {
+    grid-column: span 1;
+    flex-direction: column;
+    gap: 1rem;
+    align-items: stretch;
+    text-align: center;
+  }
+  .modal-file-info {
+    justify-content: center;
+  }
+  .tab-content {
+    padding: 1.5rem;
+  }
+  .tab-btn {
+    padding: 1rem 1.25rem;
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .stat-grid,
+  .toolbar-grid {
+    display: block;
+    gap: 0.75rem;
+  }
+
+  .stat-card {
+    margin: 0 0.5rem 1rem 0.5rem;
+  }
+
+  .admin-table {
+    width: 100%;
+    overflow: hidden;
+  }
+
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 0.5rem;
+  }
+
+  .action-btn {
+    padding: 0.45rem 0.6rem;
+    font-size: 0.85rem;
+  }
+
+  .modal-box {
+    width: calc(100% - 1rem);
+    margin: 0.5rem auto;
+    border-radius: 8px;
+    padding: 1rem;
+  }
+
+  .modal-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .email-log-body {
+    font-size: 0.9rem;
+  }
+
+  .page-loader,
+  .spinner {
+    width: 48px;
+    height: 48px;
+  }
+}

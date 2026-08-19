@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Track Application Status | GAYATRI JUNIOR & DEGREE COLLEGE</title>
+  
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/components.css">
+  
+  <style>
+    /* Status Page Specific Styles */
+    .status-search-card {
+      background-color: var(--bg-card);
+      border-radius: var(--border-radius-lg);
+      padding: 3rem;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-xl);
+      max-width: 600px;
+      margin: 0 auto;
+      text-align: center;
+    }
+    
+    .status-search-box {
+      display: flex;
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .status-search-box input {
+      flex-grow: 1;
+      padding: 0.85rem 1.25rem;
+      font-size: 1.05rem;
+    }
+    
+    .status-result-card {
+      background-color: var(--bg-card);
+      border-radius: var(--border-radius-lg);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-xl);
+      max-width: 800px;
+      margin: 3rem auto 0 auto;
+      overflow: hidden;
+      display: none; /* Shown dynamically */
+    }
+    
+    .status-result-header {
+      background-color: var(--primary);
+      color: white;
+      padding: 2rem 3rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+    }
+    
+    .status-result-header h2 {
+      color: white;
+      font-size: 1.5rem;
+      margin-bottom: 0.25rem;
+    }
+    
+    .status-badge-large {
+      padding: 0.5rem 1.25rem;
+      font-size: 0.85rem;
+      font-weight: 700;
+      border-radius: var(--border-radius-full);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    
+    .status-badge-large.pending {
+      background-color: var(--warning-light);
+      color: var(--warning);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+    
+    .status-badge-large.approved {
+      background-color: var(--success-light);
+      color: var(--success);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    
+    .status-badge-large.rejected {
+      background-color: var(--danger-light);
+      color: var(--danger);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+    
+    /* Horizontal Tracking Timeline Stepper */
+    .timeline-container {
+      background-color: var(--bg-main);
+      padding: 2.5rem 3rem;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .timeline {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: relative;
+    }
+    
+    .timeline::before {
+      content: '';
+      position: absolute;
+      top: 20px;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background-color: var(--border);
+      z-index: 1;
+    }
+    
+    .timeline-fill {
+      position: absolute;
+      top: 20px;
+      left: 0;
+      height: 3px;
+      background-color: var(--brand);
+      z-index: 2;
+      width: 0%;
+      transition: width var(--transition-normal);
+    }
+    
+    .t-node {
+      position: relative;
+      z-index: 3;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .t-circle {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--border-radius-full);
+      background-color: var(--bg-card);
+      border: 3px solid var(--border);
+      color: var(--text-light);
+      font-size: 0.9rem;
+      font-weight: 700;
+      transition: var(--transition-normal);
+    }
+    
+    .t-node.active .t-circle {
+      border-color: var(--brand);
+      background-color: var(--brand);
+      color: white;
+      box-shadow: 0 0 0 5px rgba(37, 99, 235, 0.15);
+    }
+    
+    .t-node.completed .t-circle {
+      border-color: var(--success);
+      background-color: var(--success);
+      color: white;
+    }
+    
+    .t-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+    
+    .t-node.active .t-label {
+      color: var(--brand);
+      font-weight: 700;
+    }
+    
+    .t-node.completed .t-label {
+      color: var(--success);
+    }
+    
+    /* Result Details Layout */
+    .status-result-body {
+      padding: 3rem;
+    }
+    
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 2rem;
+      margin-bottom: 2.5rem;
+    }
+    
+    .detail-section h3 {
+      font-size: 1.15rem;
+      border-bottom: 1.5px solid var(--border);
+      padding-bottom: 0.5rem;
+      margin-bottom: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--primary);
+    }
+    
+    .detail-row {
+      display: flex;
+      margin-bottom: 0.75rem;
+    }
+    
+    .detail-label {
+      width: 150px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+    
+    .detail-val {
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: var(--primary);
+    }
+    
+    /* Help instructions based on status */
+    .status-help-box {
+      border-radius: var(--border-radius-md);
+      padding: 1.5rem;
+      margin-top: 2rem;
+    }
+    
+    .status-help-box.pending {
+      background-color: var(--warning-light);
+      border: 1px solid rgba(245, 158, 11, 0.2);
+      color: var(--text-main);
+    }
+    
+    .status-help-box.approved {
+      background-color: var(--success-light);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      color: var(--text-main);
+    }
+    
+    .status-help-box.rejected {
+      background-color: var(--danger-light);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      color: var(--text-main);
+    }
+    
+    .status-help-title {
+      font-weight: 700;
+      font-size: 0.95rem;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .status-help-desc {
+      font-size: 0.85rem;
+      line-height: 1.5;
+    }
+    
+    /* Print media styling target */
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #printArea, #printArea * {
+        visibility: visible;
+      }
+      #printArea {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        border: none;
+        box-shadow: none;
+        background-color: white;
+      }
+      .status-result-header {
+        background-color: #0f172a !important;
+        color: black !important;
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+      }
+      .status-result-header h2, .status-result-header p {
+        color: white !important;
+      }
+      .timeline-container, .status-help-box, .status-result-footer {
+        display: none !important;
+      }
+    }
+    
+    @media (max-width: 768px) {
+      .status-search-card {
+        padding: 2rem;
+      }
+      .status-search-box {
+        flex-direction: column;
+      }
+      .status-result-header {
+        padding: 1.5rem 2rem;
+      }
+      .status-result-body {
+        padding: 2rem;
+      }
+      .detail-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+      }
+      .timeline-container {
+        padding: 2rem 1.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Preloader Screen -->
+  <div class="page-loader" id="pageLoader">
+    <div class="spinner"></div>
+    <div class="page-loader-text">GAYATRI JUNIOR & DEGREE COLLEGE</div>
+  </div>
+
+  <!-- Toast Container for Notifications -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Header Navigation -->
+  <header class="header-nav">
+    <div class="container nav-container">
+      <a href="index.html" class="logo-link">
+        <div class="logo-icon flex-center">
+          <img src="https://i.ibb.co/BK4yPC3W/logo-j-D.png" class="logo-icon" />
+        </div>
+        <span>GAYATRI JUNIOR & DEGREE COLLEGE</span>
+      </a>
+      
+      <ul class="nav-menu" id="navMenu">
+        <li><a href="index.html" class="nav-link">Home</a></li>
+        <li><a href="index.html#about" class="nav-link">About</a></li>
+        <li><a href="index.html#academics" class="nav-link">Academics</a></li>
+        <li><a href="index.html#facilities" class="nav-link">Facilities</a></li>
+        <li><a href="index.html#contact" class="nav-link">Contact</a></li>
+        <li><a href="status.html" class="nav-link active">Track Status</a></li>
+        <li><a href="admin.html" class="btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.875rem;">Admin Portal</a></li>
+        <li><a href="apply.html" class="btn btn-primary" style="padding: 0.5rem 1.25rem; font-size: 0.875rem;">Apply Now</a></li>
+      </ul>
+
+
+      <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Tracking Grid -->
+  <section class="section" style="background-color: var(--bg-main); min-height: 80vh;">
+    <div class="container">
+      
+      <!-- Search Panel -->
+      <div class="status-search-card">
+        <span class="badge badge-brand" style="margin-bottom: 0.5rem;">Status Check</span>
+        <h2>Track Application</h2>
+        <p style="color: var(--text-muted); font-size: 0.9rem;">Enter your unique application reference ID (e.g. ADM-2026-3941) below to search the real-time registration status.</p>
+        
+        <div class="status-search-box">
+          <input type="text" id="statusSearchInput" class="form-control" placeholder="Enter Application ID (ADM-2026-XXXX)">
+          <button type="button" class="btn btn-primary" id="btnStatusSearch">Search</button>
+        </div>
+        
+        <div class="error-text" id="statusSearchError" style="margin-top: 0.5rem; font-weight: 500;"></div>
+      </div>
+
+      <!-- Application Details Report (Target printable area) -->
+      <div class="status-result-card" id="statusResultCard">
+        <div id="printArea">
+          
+          <!-- Banner Header -->
+          <div class="status-result-header">
+            <div>
+              <p style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-light); margin-bottom: 0.25rem;">Application Reference Record</p>
+              <h2 id="rAppId">ADM-2026-3941</h2>
+              <p style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 0;">GAYATRI JUNIOR & DEGREE COLLEGE Admissions Portal</p>
+            </div>
+            <div>
+              <span class="status-badge-large pending" id="rStatusBadge">Pending Review</span>
+            </div>
+          </div>
+          
+          <!-- Timeline progress stepper -->
+          <div class="timeline-container">
+            <div class="timeline">
+              <div class="timeline-fill" id="timelineFill"></div>
+              
+              <div class="t-node completed" id="tNode1">
+                <div class="t-circle flex-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+                <div class="t-label">Form Submitted</div>
+              </div>
+              <div class="t-node" id="tNode2">
+                <div class="t-circle flex-center" id="tCircle2">2</div>
+                <div class="t-label">Under Review</div>
+              </div>
+              <div class="t-node" id="tNode3">
+                <div class="t-circle flex-center" id="tCircle3">3</div>
+                <div class="t-label">Final Decision</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Document details grid -->
+          <div class="status-result-body">
+            <div class="detail-grid">
+              
+              <!-- Col 1: Student -->
+              <div class="detail-section">
+                <h3>Student Information</h3>
+                <div class="detail-row">
+                  <span class="detail-label">Full Name</span>
+                  <span class="detail-val" id="rStudentName">Alex Mercer</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">Date of Birth</span>
+                  <span class="detail-val" id="rDob">2016-04-12</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">Gender</span>
+                  <span class="detail-val" id="rGender">Male</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">Class Applied</span>
+                  <span class="detail-val" id="rClass">Grade 5</span>
+                </div>
+              </div>
+
+              <!-- Col 2: Parent -->
+              <div class="detail-section">
+                <h3>Contact & Parent</h3>
+                <div class="detail-row">
+                  <span class="detail-label">Parent Name</span>
+                  <span class="detail-val" id="rParentName">Sarah Mercer</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">Mobile Number</span>
+                  <span class="detail-val" id="rPhone">555-0199</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">Email Address</span>
+                  <span class="detail-val" id="rEmail">sarah.mercer@example.com</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">Previous School</span>
+                  <span class="detail-val" id="rPrevSchool">Springfield Elementary</span>
+                </div>
+              </div>
+              
+              <!-- Address Details full line -->
+              <div class="detail-section" style="grid-column: span 2;">
+                <h3>Residential Location</h3>
+                <div class="detail-row">
+                  <span class="detail-label">Address</span>
+                  <span class="detail-val" id="rAddress">742 Evergreen Terrace, Springfield</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-label">Submitted Document</span>
+                  <span class="detail-val" id="rDocName" style="color: var(--brand); font-weight: 600;">alex_grade4_report.pdf</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Dynamic Decision details instructions card -->
+            <div class="status-help-box pending" id="statusHelpBox">
+              <div class="status-help-title" id="statusHelpTitle">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                <span>Application Under Verification</span>
+              </div>
+              <div class="status-help-desc" id="statusHelpDesc">
+                Your application details and documents are currently being checked by the admissions office. We will notify you via email as soon as a final enrollment status update is processed.
+              </div>
+            </div>
+
+          </div>
+        </div>
+        
+        <!-- Action Buttons Footer -->
+        <div class="status-result-footer" style="padding: 1.5rem 3rem; background-color: var(--bg-main); border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 1rem;">
+          <button type="button" class="btn btn-secondary" onclick="window.print()">Print Document</button>
+          <button type="button" class="btn btn-primary" id="btnDownloadPdf">Download Application PDF</button>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container footer-grid">
+      <div class="footer-col footer-about">
+        <h3>GAYATRI JUNIOR & DEGREE COLLEGE</h3>
+        <p>A leading intermediate college committed to shaping future achievers. We provide quality education, foster academic excellence, and empower students with the knowledge, discipline, and confidence to succeed in competitive examinations and beyond.</p>
+        <div class="social-links">
+          <a href="mailto:gayatricollege02245@gmail.com" class="social-btn flex-center" aria-label="Email">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="5" width="18" height="14" rx="2"/>
+              <path d="M3 7l9 6 9-6"/>
+            </svg>
+          </a>
+          <a href="https://wa.me/919491495285" class="social-btn flex-center" aria-label="WhatsApp" target="_blank" rel="noopener noreferrer">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12.04 2C6.59 2 2 6.58 2 12.03c0 2.12.68 4.07 1.83 5.7l-1.2 4.37 4.44-1.17a9.94 9.94 0 0 0 4.97 1.25c5.45 0 9.96-4.58 9.96-10.03S17.49 2 12.04 2zm5.44 14.13c-.22.63-1.26 1.21-1.76 1.29-.46.08-1.03.11-1.88-.16-1.77-.5-4.05-2.16-5.28-3.88a7.08 7.08 0 0 1-1.32-2.58c-.1-.3-.16-.6 0-.82.15-.22.42-.35.66-.5.22-.14.3-.23.45-.38.17-.16.64-.89.82-1.19.18-.3.37-.27 0.5-.26.12.01.27.01.41.01.15 0 .39-.06.6.45.22.52.74 1.8.8 1.93.09.19.14.41.03.64-.11.23-.17.36-.34.53-.18.18-.38.4-.54.53-.18.15-.37.32-.15.63.22.31.98 1.61 2.11 2.06 1.14.45 1.6.29 1.88.27.29-.01.9-.36 1.08-.71.18-.36.18-.64.12-.71-.06-.06-.25-.23-.52-.4-.27-.17-1.61-.79-1.86-.88-.25-.09-.43-.13-.61.13-.18.25-.71.82-.87.99-.16.17-.32.19-.6.06-.29-.13-1.23-.45-2.35-1.45-.87-.79-1.45-1.76-1.62-2.05-.17-.29-.02-.44.12-.57.12-.12.27-.31.41-.46.14-.15.19-.26.29-.43.09-.16.05-.31-.03-.45-.08-.15-.61-1.47-.84-2.02-.22-.53-.45-.46-.62-.47-.16-.01-.35-.01-.54-.01-.19 0-.5.07-.76.36-.26.28-1 1-1 2.45s1.02 2.84 1.16 3.04c.14.2 2.09 3.24 5.07 4.53.71.31 1.26.49 1.69.63.71.23 1.36.2 1.88.12.57-.09 1.76-.72 2.01-1.39.23-.63.23-1.17.16-1.28-.07-.12-.27-.19-.57-.33z"/>
+            </svg>
+          </a>
+        </div>
+      </div>
+      <!-- col 2-->
+      <div class="footer-col">
+        <h3>Admissions</h3>
+        <ul class="footer-links">
+          <li><a href="apply.html">Online Application</a></li>
+          <li><a href="status.html">Track Application Status</a></li>
+          <li><a href="index.html#academics">Curriculum Programs</a></li>
+          <li><a href="index.html#about">Admission Policy</a></li>
+        </ul>
+      </div>
+
+      <!-- Col 3 -->
+      <div class="footer-col">
+        <h3>Explore</h3>
+        <ul class="footer-links">
+          <li><a href="index.html#about">About School</a></li>
+          <li><a href="index.html#facilities">Campus Facilities</a></li>
+          <li><a href="index.html#contact">Campus Location</a></li>
+          <li><a href="admin.html">Admin Login</a></li>
+        </ul>
+      </div>
+
+      <!-- Col 4 -->
+      <div class="footer-col">
+        <h3>Need Help?</h3>
+        <div class="footer-contact-item">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path
+              d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+          </svg>
+          <span>+91 94914 95285</span>
+        </div>
+        <div class="footer-contact-item">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+            <polyline points="22,6 12,13 2,6" />
+          </svg>
+          <span>gayatricollege02245@gmail.com</span>
+        </div>
+        <div class="footer-contact-item">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12 6 12 12 16 14" />
+          </svg>
+          <span>Mon - Sat: 8:00 AM - 4:00 PM</span>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="footer-bottom">
+      <p>&copy; 2026 GAYATRI JUNIOR & DEGREE COLLEGE. All Rights Reserved. Built for modern administrative excellence.</p>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="js/db.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/pdf-generator.js"></script>
+  <script src="js/status.js"></script>
+</body>
+</html>
+
