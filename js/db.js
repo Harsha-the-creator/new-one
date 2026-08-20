@@ -39,114 +39,61 @@ function getApplications() {
 }
 
 // Get topper highlight entries for homepage
+// firebase-toppers.js patches window.DB.getToppers directly;
+// this function is only a fallback for when that module hasn't loaded yet.
 function getToppers() {
   initDb();
   if (window.ToppersDB && typeof window.ToppersDB.getLocalToppers === 'function') {
-    return window.ToppersDB.getLocalToppers() || JSON.parse(localStorage.getItem(TOPPERS_KEY)) || [];
+    return window.ToppersDB.getLocalToppers();
   }
   return JSON.parse(localStorage.getItem(TOPPERS_KEY)) || [];
 }
 
 function getTopperById(id) {
-  const list = getToppers();
-  return list.find(topper => topper.id === id) || null;
+  return getToppers().find(t => t.id === id) || null;
 }
 
-function whenToppersDbReady() {
-  return new Promise(resolve => {
-    if (window.ToppersDB && typeof window.ToppersDB.createTopper === 'function') {
-      return resolve();
-    }
-
-    let attempts = 0;
-    const waitForToppersDB = () => {
-      if (window.ToppersDB && typeof window.ToppersDB.createTopper === 'function') {
-        return resolve();
-      }
-      attempts += 1;
-      if (attempts >= 50) {
-        return resolve();
-      }
-      setTimeout(waitForToppersDB, 100);
-    };
-
-    waitForToppersDB();
-  });
-}
-
+// Delegate fully to firebase-toppers.js — it handles both Firestore and localStorage.
+// No local write here to avoid duplicate entries.
 function createTopper(entry) {
+  if (window.ToppersDB && typeof window.ToppersDB.createTopper === 'function') {
+    window.ToppersDB.createTopper(entry).catch(() => {});
+    return readLocalToppers()[0] || { ...entry, id: 'temp-' + Date.now() };
+  }
+  // Pure localStorage fallback (no firebase-toppers.js loaded yet)
   const list = getToppers();
   const newTopper = {
     id: 'TOP-' + Math.floor(100000 + Math.random() * 900000),
-    name: entry.name,
-    class: entry.class,
-    marks: entry.marks,
-    image: entry.image,
-    createdAt: new Date().toISOString()
+    name: entry.name, class: entry.class, marks: entry.marks,
+    image: entry.image, createdAt: new Date().toISOString()
   };
   list.unshift(newTopper);
   localStorage.setItem(TOPPERS_KEY, JSON.stringify(list));
-
-  if (window.ToppersDB) {
-    whenToppersDbReady().then(() => {
-      if (typeof window.ToppersDB.createTopper !== 'function') {
-        window.dispatchEvent(new Event('topperDataUpdated'));
-        return;
-      }
-
-      window.ToppersDB.createTopper(entry).then(remoteTopper => {
-        if (!remoteTopper || !remoteTopper.id) {
-          window.dispatchEvent(new Event('topperDataUpdated'));
-          return;
-        }
-        const current = JSON.parse(localStorage.getItem(TOPPERS_KEY)) || [];
-        const filtered = current.filter(topper => topper.id !== newTopper.id);
-        filtered.unshift(remoteTopper);
-        localStorage.setItem(TOPPERS_KEY, JSON.stringify(filtered));
-        window.dispatchEvent(new Event('topperDataUpdated'));
-      }).catch(() => {
-        window.dispatchEvent(new Event('topperDataUpdated'));
-      });
-    });
-  } else {
-    window.dispatchEvent(new Event('topperDataUpdated'));
-  }
-
+  window.dispatchEvent(new Event('topperDataUpdated'));
   return newTopper;
 }
 
+function readLocalToppers() {
+  try { return JSON.parse(localStorage.getItem(TOPPERS_KEY) || '[]'); } catch { return []; }
+}
+
 function deleteTopper(id) {
-  let list = getToppers();
-  list = list.filter(topper => topper.id !== id);
-  localStorage.setItem(TOPPERS_KEY, JSON.stringify(list));
-
-  if (window.ToppersDB) {
-    whenToppersDbReady().then(() => {
-      if (typeof window.ToppersDB.deleteTopper === 'function') {
-        window.ToppersDB.deleteTopper(id).catch(() => {
-          // keep local deletion even if remote fails
-        });
-      }
-    });
+  if (window.ToppersDB && typeof window.ToppersDB.deleteTopper === 'function') {
+    window.ToppersDB.deleteTopper(id).catch(() => {});
+    return readLocalToppers().filter(t => t.id !== id);
   }
-
+  const list = getToppers().filter(t => t.id !== id);
+  localStorage.setItem(TOPPERS_KEY, JSON.stringify(list));
   window.dispatchEvent(new Event('topperDataUpdated'));
   return list;
 }
 
 function clearToppers() {
-  localStorage.setItem(TOPPERS_KEY, JSON.stringify([]));
-
-  if (window.ToppersDB) {
-    whenToppersDbReady().then(() => {
-      if (typeof window.ToppersDB.clearToppers === 'function') {
-        window.ToppersDB.clearToppers().catch(() => {
-          // keep local clear even if remote clear fails
-        });
-      }
-    });
+  if (window.ToppersDB && typeof window.ToppersDB.clearToppers === 'function') {
+    window.ToppersDB.clearToppers().catch(() => {});
+    return;
   }
-
+  localStorage.setItem(TOPPERS_KEY, JSON.stringify([]));
   window.dispatchEvent(new Event('topperDataUpdated'));
 }
 
