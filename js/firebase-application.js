@@ -15,64 +15,53 @@ import {
 
 import { getFirebaseApp } from "./firebase-init.js";
 
-const APPLICATIONS_COLLECTION = 'applications';
+const COLLECTION   = 'applications';
 const FALLBACK_KEY = 'admissions_applications';
 let db = null;
 let activeListenerCallbacks = [];
+let listenerUnsubscribe = null;
 
-function readFallbackApplications() {
-  try {
-    return JSON.parse(window.localStorage.getItem(FALLBACK_KEY) || '[]');
-  } catch { return []; }
+// ── Local storage helpers ─────────────────────────────────────────────────────
+function readFallback() {
+  try { return JSON.parse(window.localStorage.getItem(FALLBACK_KEY) || '[]'); }
+  catch { return []; }
 }
 
-function writeFallbackApplications(apps) {
-  try {
-    window.localStorage.setItem(FALLBACK_KEY, JSON.stringify(apps));
-  } catch (error) {
-    console.warn('Unable to persist fallback applications:', error);
-  }
+function writeFallback(apps) {
+  try { window.localStorage.setItem(FALLBACK_KEY, JSON.stringify(apps)); }
+  catch (e) { console.warn('Unable to persist applications locally:', e); }
 }
 
-function notifyListeners() {
-  const apps = readFallbackApplications();
-  activeListenerCallbacks.forEach(cb => {
-    try { cb(apps); } catch (e) { console.warn('Application listener callback error:', e); }
-  });
+// ── Notify all active listeners ───────────────────────────────────────────────
+function notifyListeners(apps) {
+  const list = apps || readFallback();
+  activeListenerCallbacks.forEach(cb => { try { cb(list); } catch (e) { console.warn('App listener error:', e); } });
   try { window.dispatchEvent(new Event('applicationDataUpdated')); } catch { /* ignore */ }
 }
 
-function listenApplications(callback) {
-  if (typeof callback === 'function') {
-    activeListenerCallbacks.push(callback);
-    callback(readFallbackApplications());
-  }
-  return () => {
-    activeListenerCallbacks = activeListenerCallbacks.filter(c => c !== callback);
-  };
-}
-
+// ── Normalise an application doc ─────────────────────────────────────────────
 function normalizeApplication(app = {}, id = '') {
   return {
-    id: app.id || id || '',
-    studentName: app.studentName || '',
-    dob: app.dob || '',
-    gender: app.gender || '',
-    parentName: app.parentName || '',
-    parentPhone: app.parentPhone || '',
-    email: app.email || '',
-    address: app.address || '',
+    id:            app.id || id || '',
+    studentName:   app.studentName || '',
+    dob:           app.dob || '',
+    gender:        app.gender || '',
+    parentName:    app.parentName || '',
+    parentPhone:   app.parentPhone || '',
+    email:         app.email || '',
+    address:       app.address || '',
     classApplying: app.classApplying || app.class || '',
-    prevSchool: app.prevSchool || 'N/A',
-    docName: app.docName || app.documentName || 'not_uploaded.pdf',
-    docType: app.docType || 'application/pdf',
-    docSize: Number(app.docSize || 0),
-    status: app.status || 'pending',
-    createdAt: app.createdAt || new Date().toISOString(),
-    updatedAt: app.updatedAt || new Date().toISOString()
+    prevSchool:    app.prevSchool || 'N/A',
+    docName:       app.docName || app.documentName || 'not_uploaded.pdf',
+    docType:       app.docType || 'application/pdf',
+    docSize:       Number(app.docSize || 0),
+    status:        app.status || 'pending',
+    createdAt:     app.createdAt || new Date().toISOString(),
+    updatedAt:     app.updatedAt || new Date().toISOString()
   };
 }
 
+// ── DB getter ─────────────────────────────────────────────────────────────────
 async function getDb() {
   if (db) return db;
   const app = await getFirebaseApp();
@@ -80,150 +69,164 @@ async function getDb() {
   return db;
 }
 
-// Start real-time Firestore listener
-getDb().then(database => {
-  const appsRef = collection(database, APPLICATIONS_COLLECTION);
-  const q = query(appsRef, orderBy('createdAt', 'desc'));
-  onSnapshot(q, (snapshot) => {
-    const firestoreApps = [];
-    snapshot.forEach((docSnap) => firestoreApps.push(normalizeApplication(docSnap.data(), docSnap.id)));
-    const fallback = readFallbackApplications();
-    const localOnly = fallback.filter(a => a && String(a.id).startsWith('local-'));
-    const combined = [...localOnly, ...firestoreApps].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    writeFallbackApplications(combined);
-    notifyListeners();
-  }, (err) => {
-    console.warn('Realtime applications listener failed, using local fallback:', err);
+// ── Start real-time Firestore listener (called once) ─────────────────────────
+function startFirestoreListener() {
+  if (listenerUnsubscribe) return;
+  getDb().then(database => {
+    const q = query(collection(database, COLLECTION), orderBy('createdAt', 'desc'));
+    listenerUnsubscribe = onSnapshot(q, snapshot => {
+      const firestoreApps = [];
+      snapshot.forEach(d => firestoreApps.push(normalizeApplication(d.data(), d.id)));
+      const localOnly = readFallback().filter(a => a && String(a.id).startsWith('local-'));
+      const combined  = [...localOnly, ...firestoreApps].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      writeFallback(combined);
+      notifyListeners(combined);
+    }, err => {
+      console.warn('Firestore applications listener error (using local fallback):', err);
+    });
+  }).catch(err => {
+    console.warn('Firebase Firestore init failed for applications:', err);
   });
-}).catch(err => {
-  console.warn('Firebase Firestore initialization failed for applications:', err);
-});
+}
 
+// Start listener immediately when module loads
+startFirestoreListener();
+
+// ── listenApplications ────────────────────────────────────────────────────────
+function listenApplications(callback) {
+  if (typeof callback !== 'function') return () => {};
+  activeListenerCallbacks.push(callback);
+  callback(readFallback()); // serve cached data immediately
+  return () => {
+    activeListenerCallbacks = activeListenerCallbacks.filter(c => c !== callback);
+  };
+}
+
+// ── ID generator ─────────────────────────────────────────────────────────────
 function generateApplicationId() {
   if (window.DB && typeof window.DB.generateUniqueId === 'function') {
     return window.DB.generateUniqueId();
   }
-  const currentYear = new Date().getFullYear();
-  const randomDigits = Math.floor(1000 + Math.random() * 9000);
-  return `ADM-${currentYear}-${randomDigits}`;
+  const year = new Date().getFullYear();
+  return `ADM-${year}-${Math.floor(1000 + Math.random() * 9000)}`;
 }
 
+// ── addApplication ────────────────────────────────────────────────────────────
 async function addApplication(appData) {
-  const appId = appData.id || generateApplicationId();
-  const payload = normalizeApplication({
-    ...appData,
-    id: appId,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  }, appId);
+  const appId   = appData.id || generateApplicationId();
+  const payload = normalizeApplication({ ...appData, id: appId, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }, appId);
 
-  // Save to fallback storage immediately
-  const fallback = readFallbackApplications();
+  // Save locally and notify immediately
+  const fallback = readFallback();
   const existingIndex = fallback.findIndex(a => a.id === payload.id);
-  if (existingIndex >= 0) {
-    fallback[existingIndex] = payload;
-  } else {
-    fallback.unshift(payload);
-  }
-  writeFallbackApplications(fallback);
-  notifyListeners();
+  if (existingIndex >= 0) { fallback[existingIndex] = payload; } else { fallback.unshift(payload); }
+  writeFallback(fallback);
+  notifyListeners(fallback);
 
+  // Persist to Firestore asynchronously
   try {
     const database = await getDb();
-    const docRef = doc(database, APPLICATIONS_COLLECTION, payload.id);
-    await setDoc(docRef, payload);
-    return payload;
+    await setDoc(doc(database, COLLECTION, payload.id), payload);
   } catch (error) {
-    console.error('Firestore addApplication failed. Fallback storage was updated:', error);
-    return payload;
+    console.error('Firestore addApplication failed (saved locally):', error);
   }
+  return payload;
 }
 
-async function syncApplicationsFromRemote() {
-  try {
-    const database = await getDb();
-    const appsRef = collection(database, APPLICATIONS_COLLECTION);
-    const q = query(appsRef, orderBy('createdAt', 'desc'));
-    const snapshot = await getDocs(q);
-    const firestoreApps = [];
-    snapshot.forEach((docSnap) => firestoreApps.push(normalizeApplication(docSnap.data(), docSnap.id)));
-    const fallback = readFallbackApplications();
-    const localOnly = fallback.filter(a => a && String(a.id).startsWith('local-'));
-    const combined = [...localOnly, ...firestoreApps].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    writeFallbackApplications(combined);
-    notifyListeners();
-    return combined;
-  } catch (error) {
-    console.warn('Unable to load applications from Firestore, using local fallback:', error);
-    return readFallbackApplications();
-  }
-}
-
+// ── getApplications ───────────────────────────────────────────────────────────
 async function getApplications() {
-  return await syncApplicationsFromRemote();
+  // Trigger a one-shot sync but return what we have immediately
+  try {
+    const database = await getDb();
+    const snap     = await getDocs(query(collection(database, COLLECTION), orderBy('createdAt', 'desc')));
+    const firestoreApps = [];
+    snap.forEach(d => firestoreApps.push(normalizeApplication(d.data(), d.id)));
+    const localOnly = readFallback().filter(a => a && String(a.id).startsWith('local-'));
+    const combined  = [...localOnly, ...firestoreApps].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    writeFallback(combined);
+    notifyListeners(combined);
+    return combined;
+  } catch {
+    return readFallback();
+  }
 }
 
-function getLocalApplications() {
-  return readFallbackApplications();
-}
+function getLocalApplications() { return readFallback(); }
 
+// ── getApplicationById ────────────────────────────────────────────────────────
 async function getApplicationById(id) {
   if (!id) return null;
-  const cleanId = String(id).trim().toUpperCase();
-  const foundLocal = readFallbackApplications().find(a => String(a.id).trim().toUpperCase() === cleanId);
-  if (foundLocal) return foundLocal;
+  const clean = String(id).trim().toUpperCase();
+  const local = readFallback().find(a => String(a.id).trim().toUpperCase() === clean);
+  if (local) return local;
   try {
     const database = await getDb();
-    const docRef = doc(database, APPLICATIONS_COLLECTION, id);
-    const snap = await getDoc(docRef);
+    const snap = await getDoc(doc(database, COLLECTION, id));
     if (!snap.exists()) return null;
-    const remoteApp = normalizeApplication(snap.data(), snap.id);
-    const fallback = readFallbackApplications();
-    fallback.unshift(remoteApp);
-    writeFallbackApplications(fallback);
-    notifyListeners();
-    return remoteApp;
-  } catch (error) {
-    console.warn('Firestore getApplicationById failed:', error);
-    return null;
-  }
+    const remote = normalizeApplication(snap.data(), snap.id);
+    const updated = [remote, ...readFallback()];
+    writeFallback(updated);
+    notifyListeners(updated);
+    return remote;
+  } catch { return null; }
 }
 
+// ── updateApplicationStatus ───────────────────────────────────────────────────
 async function updateApplicationStatus(id, newStatus) {
   if (!id) return null;
-  const fallback = readFallbackApplications().map(a =>
+  const fallback = readFallback().map(a =>
     a.id === id ? { ...a, status: newStatus, updatedAt: new Date().toISOString() } : a
   );
-  writeFallbackApplications(fallback);
-  notifyListeners();
-  
-  const updatedApp = fallback.find(a => a.id === id) || null;
+  writeFallback(fallback);
+  notifyListeners(fallback);
+  const updated = fallback.find(a => a.id === id) || null;
   try {
     const database = await getDb();
-    await updateDoc(doc(database, APPLICATIONS_COLLECTION, id), { status: newStatus, updatedAt: new Date().toISOString() });
-    return updatedApp;
-  } catch (error) {
-    console.warn('Firestore updateApplicationStatus failed:', error);
-    return updatedApp;
-  }
+    await updateDoc(doc(database, COLLECTION, id), { status: newStatus, updatedAt: new Date().toISOString() });
+  } catch (e) { console.warn('Firestore updateApplicationStatus failed:', e); }
+  return updated;
 }
 
+// ── clearApplications ─────────────────────────────────────────────────────────
 async function clearApplications() {
-  writeFallbackApplications([]);
-  notifyListeners();
+  writeFallback([]);
+  notifyListeners([]);
   try {
     const database = await getDb();
-    const appsRef = collection(database, APPLICATIONS_COLLECTION);
-    const snapshot = await getDocs(appsRef);
+    const snap  = await getDocs(collection(database, COLLECTION));
     const batch = writeBatch(database);
-    snapshot.forEach((docSnap) => batch.delete(docSnap.ref));
+    snap.forEach(d => batch.delete(d.ref));
     await batch.commit();
-    return [];
-  } catch (error) {
-    console.warn('Firestore clearApplications failed:', error);
-    return [];
-  }
+  } catch (e) { console.warn('Firestore clearApplications failed:', e); }
+  return [];
 }
+
+// ── Patch window.DB ───────────────────────────────────────────────────────────
+function patchGlobalDB() {
+  if (!window.DB) return;
+  window.DB.createApplication   = addApplication;
+  window.DB.clearApplications   = clearApplications;
+  window.DB.updateApplicationStatus = updateApplicationStatus;
+
+  // Synchronous with async background sync
+  window.DB.getApplications = function () {
+    getApplications().catch(() => {});
+    return readFallback();
+  };
+
+  window.DB.getApplicationById = function (id) {
+    if (!id) return null;
+    const clean = String(id).trim().toUpperCase();
+    const found = readFallback().find(a => String(a.id).trim().toUpperCase() === clean);
+    if (found) return found;
+    getApplicationById(id).catch(() => {});
+    return null;
+  };
+}
+
+// Patch immediately and again after other scripts may have loaded window.DB
+patchGlobalDB();
+setTimeout(patchGlobalDB, 300);
 
 window.ApplicationDB = {
   addApplication,
@@ -232,33 +235,5 @@ window.ApplicationDB = {
   getApplicationById,
   updateApplicationStatus,
   clearApplications,
-  listenApplications,
-  syncApplicationsFromRemote
+  listenApplications
 };
-
-function patchGlobalDB() {
-  if (!window.DB) return;
-  if (typeof window.ApplicationDB.addApplication === 'function') window.DB.createApplication = window.ApplicationDB.addApplication;
-
-  // Ensure window.DB.getApplications returns Array synchronously for compatibility, while syncing Firestore in background
-  window.DB.getApplications = function() {
-    syncApplicationsFromRemote().catch(() => {});
-    return readFallbackApplications();
-  };
-
-  // Synchronous lookup with async fallback
-  window.DB.getApplicationById = function(id) {
-    if (!id) return null;
-    const cleanId = String(id).trim().toUpperCase();
-    const found = readFallbackApplications().find(a => String(a.id).trim().toUpperCase() === cleanId);
-    if (found) return found;
-    getApplicationById(id).catch(() => {});
-    return null;
-  };
-
-  if (typeof window.ApplicationDB.updateApplicationStatus === 'function') window.DB.updateApplicationStatus = window.ApplicationDB.updateApplicationStatus;
-  if (typeof window.ApplicationDB.clearApplications === 'function') window.DB.clearApplications = window.ApplicationDB.clearApplications;
-}
-
-patchGlobalDB();
-setTimeout(patchGlobalDB, 150);
