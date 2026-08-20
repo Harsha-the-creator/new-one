@@ -176,21 +176,33 @@ document.addEventListener('DOMContentLoaded', () => {
     renderToppersTable();
   }
 
+  // Real-time application updates event listener
+  window.addEventListener('applicationDataUpdated', () => {
+    renderApplicationsTable();
+    calculateStatsMetrics();
+  });
+
   // Render Datatable applications list rows
-  function renderApplicationsTable() {
+  async function renderApplicationsTable() {
     tableBody.innerHTML = '';
     
-    // Fetch latest rows from DB layer
-    const appsList = window.DB.getApplications();
+    // Fetch latest rows from DB layer safely handling sync array or Promise
+    const rawApps = window.DB.getApplications();
+    const appsList = Array.isArray(rawApps) ? rawApps : (await rawApps) || [];
     const query = searchInput.value.toLowerCase().trim();
     const selectedClass = classFilter.value;
     const selectedStatus = statusFilter.value;
     
     // Apply searches & filters
     const filteredApps = appsList.filter(app => {
-      const matchQuery = app.studentName.toLowerCase().includes(query) || 
-                         app.id.toLowerCase().includes(query) || 
-                         app.parentName.toLowerCase().includes(query);
+      if (!app) return false;
+      const sName = app.studentName ? app.studentName.toLowerCase() : '';
+      const sId = app.id ? app.id.toLowerCase() : '';
+      const pName = app.parentName ? app.parentName.toLowerCase() : '';
+
+      const matchQuery = sName.includes(query) || 
+                         sId.includes(query) || 
+                         pName.includes(query);
                          
       const matchClass = selectedClass === '' ? true : app.classApplying === selectedClass;
       const matchStatus = selectedStatus === '' ? true : app.status === selectedStatus;
@@ -278,26 +290,25 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Handle updates in statuses
-  function processStatusChange(id, status) {
-    const updated = window.DB.updateApplicationStatus(id, status);
+  async function processStatusChange(id, status) {
+    const raw = window.DB.updateApplicationStatus(id, status);
+    const updated = (raw && typeof raw.then === 'function') ? await raw : raw;
     
-    if (updated) {
-      loadDashboardData();
-      
-      const type = status === 'approved' ? 'success' : 'error';
-      showToast(
-        'Application Updated', 
-        `Status of ${id} set to ${status.toUpperCase()}. Simulated email sent.`, 
-        type
-      );
-    }
+    loadDashboardData();
+    
+    const type = status === 'approved' ? 'success' : 'error';
+    showToast(
+      'Application Updated', 
+      `Status of ${id} set to ${status.toUpperCase()}. Simulated email sent.`, 
+      type
+    );
   }
 
   // Clear all application records
-  function clearAllApplications() {
-    window.DB.clearApplications();
+  async function clearAllApplications() {
+    const raw = window.DB.clearApplications();
+    if (raw && typeof raw.then === 'function') await raw;
     loadDashboardData();
-    renderApplicationsTable();
     showToast('Application Database Cleared', 'All application records have been removed.', 'success');
   }
 
@@ -771,8 +782,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Open Details Modal and populate values
-  function openDetailsModal(id) {
-    const app = window.DB.getApplicationById(id);
+  async function openDetailsModal(id) {
+    const raw = window.DB.getApplicationById(id);
+    const app = (raw && typeof raw.then === 'function') ? await raw : raw;
     if (!app) return;
 
     // Set Text Contents
@@ -818,13 +830,14 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Calculate top totals metrics panels counts
-  function calculateStatsMetrics() {
-    const list = window.DB.getApplications();
+  async function calculateStatsMetrics() {
+    const rawList = window.DB.getApplications();
+    const list = Array.isArray(rawList) ? rawList : (await rawList) || [];
     
     const total = list.length;
-    const pending = list.filter(a => a.status === 'pending').length;
-    const approved = list.filter(a => a.status === 'approved').length;
-    const rejected = list.filter(a => a.status === 'rejected').length;
+    const pending = list.filter(a => a && a.status === 'pending').length;
+    const approved = list.filter(a => a && a.status === 'approved').length;
+    const rejected = list.filter(a => a && a.status === 'rejected').length;
     
     statTotal.textContent = total;
     statPending.textContent = pending;
