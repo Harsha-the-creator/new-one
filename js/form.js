@@ -337,7 +337,13 @@ document.addEventListener('DOMContentLoaded', () => {
       };
 
       // Call database layer and await send status
-      const submittedApp = await window.DB.createApplication(formData);
+      // Prefer the Firebase-backed ApplicationDB, fall back to legacy localStorage DB
+      let submittedApp;
+      if (window.ApplicationDB && typeof window.ApplicationDB.addApplication === 'function') {
+        submittedApp = await window.ApplicationDB.addApplication(formData);
+      } else {
+        submittedApp = await window.DB.createApplication(formData);
+      }
 
       // Hide Loader
       if (pageLoader) {
