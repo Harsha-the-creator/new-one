@@ -663,11 +663,8 @@ img {
     flex-direction: column;
     gap: 0.75rem;
     width: 100%;
-    position: fixed;
-    bottom: 1.5rem;
-    left: 1.5rem;
-    right: 1.5rem;
-    z-index: 999;
+    margin-top: 1rem;
+    position: static;
   }
 
   .nav-actions .btn {
@@ -675,17 +672,6 @@ img {
     text-align: center;
     padding: 0.75rem 1rem !important;
     font-size: 0.9rem !important;
-  }
-
-  /* When nav-actions is moved into the menu container, make it flow with menu content */
-  .nav-actions.in-menu {
-    position: static !important;
-    bottom: auto !important;
-    left: auto !important;
-    right: auto !important;
-    margin-top: 1rem;
-    z-index: auto;
-    width: 100%;
   }
 
   /* Active menu toggling bars representation */
