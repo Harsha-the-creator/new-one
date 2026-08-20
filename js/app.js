@@ -20,46 +20,17 @@ document.addEventListener('DOMContentLoaded', () => {
   const navMenu = document.getElementById('navMenu');
   
   if (navToggle && navMenu) {
-    // Preserve nav actions move-to-menu behavior for small screens
-    const navActions = document.querySelector('.nav-actions');
-    let originalParent = null;
-    let originalNextSibling = null;
-
-    function restoreNavActions() {
-      if (navActions && originalParent) {
-        navActions.classList.remove('in-menu');
-        if (originalNextSibling) originalParent.insertBefore(navActions, originalNextSibling);
-        else originalParent.appendChild(navActions);
-      }
-    }
-
     navToggle.addEventListener('click', () => {
       navToggle.classList.toggle('active');
       navMenu.classList.toggle('active');
-
-      // On mobile open, move navActions into navMenu so buttons are visible inside drawer
-      if (navMenu.classList.contains('active') && navActions) {
-        if (!originalParent) {
-          originalParent = navActions.parentNode;
-          originalNextSibling = navActions.nextElementSibling;
-        }
-        navActions.classList.add('in-menu');
-        navMenu.appendChild(navActions);
-      } else if (navActions && originalParent) {
-        // restore original position when menu closes
-        navActions.classList.remove('in-menu');
-        if (originalNextSibling) originalParent.insertBefore(navActions, originalNextSibling);
-        else originalParent.appendChild(navActions);
-      }
     });
 
-    // Close mobile nav drawer when clicking on links and restore actions
+    // Close mobile nav drawer when clicking on links
     const navLinks = navMenu.querySelectorAll('a');
     navLinks.forEach(link => {
       link.addEventListener('click', () => {
         navToggle.classList.remove('active');
         navMenu.classList.remove('active');
-        restoreNavActions();
       });
     });
   }
