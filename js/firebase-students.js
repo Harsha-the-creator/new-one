@@ -14,56 +14,53 @@ import {
 
 import { getFirebaseApp } from "./firebase-init.js";
 
+const COLLECTION = 'students';
 const FALLBACK_KEY = 'student_records_fallback';
 let db = null;
 let activeListenerCallback = null;
+let listenerUnsubscribe = null;
 
-// Initialize Firestore when the module loads
-getFirebaseApp().then(app => {
-  db = getFirestore(app);
-}).catch(err => {
-  console.warn('Firebase Firestore initialization failed, using fallback storage:', err);
-});
-
-function readFallbackStudents() {
-  try {
-    return JSON.parse(window.localStorage.getItem(FALLBACK_KEY) || '[]');
-  } catch { return []; }
+// ── Local storage helpers ─────────────────────────────────────────────────────
+function readFallback() {
+  try { return JSON.parse(window.localStorage.getItem(FALLBACK_KEY) || '[]'); }
+  catch { return []; }
 }
 
-function writeFallbackStudents(students) {
-  try {
-    window.localStorage.setItem(FALLBACK_KEY, JSON.stringify(students));
-  } catch (error) {
-    console.warn('Unable to persist fallback student records:', error);
-  }
+function writeFallback(students) {
+  try { window.localStorage.setItem(FALLBACK_KEY, JSON.stringify(students)); }
+  catch (e) { console.warn('Unable to persist student records locally:', e); }
 }
 
+// ── Normalise a student doc ───────────────────────────────────────────────────
 function normalizeStudent(student, id) {
-  const feesValue = Number(student.fees || 0);
-  const feesPaidValue = Number(student.feesPaid || 0);
+  const fees    = Number(student.fees    || 0);
+  const feesPaid= Number(student.feesPaid|| 0);
   return {
-    id: student.id || id || '',
-    studentName: student.studentName || '',
-    className: student.className || student.class || '',
-    fees: Number.isNaN(feesValue) ? 0 : feesValue,
-    feesPaid: Number.isNaN(feesPaidValue) ? 0 : feesPaidValue,
-    photo: student.photo || '',
-    parentName: student.parentName || '',
-    parentPhone: student.parentPhone || '',
+    id:            student.id || id || '',
+    studentName:   student.studentName || '',
+    className:     student.className || student.class || '',
+    fees:          isNaN(fees)     ? 0 : fees,
+    feesPaid:      isNaN(feesPaid) ? 0 : feesPaid,
+    photo:         student.photo || '',
+    parentName:    student.parentName || '',
+    parentPhone:   student.parentPhone || '',
     admissionDate: student.admissionDate || '',
-    notes: student.notes || '',
-    createdAt: student.createdAt || new Date().toISOString()
+    notes:         student.notes || '',
+    createdAt:     student.createdAt || new Date().toISOString()
   };
 }
 
-function notifyListener() {
-  if (activeListenerCallback) {
-    const fallbackStudents = readFallbackStudents();
-    activeListenerCallback(fallbackStudents.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+// Strip base64 photo if it would push the Firestore doc over ~900 KB
+const MAX_PHOTO_BYTES = 900 * 1024; // 900 KB safety margin
+function safePayload(doc) {
+  if (doc.photo && doc.photo.length > MAX_PHOTO_BYTES) {
+    console.warn('Student photo too large for Firestore – storing without photo in Firestore (still visible locally).');
+    return { ...doc, photo: '' };
   }
+  return doc;
 }
 
+// ── DB getter ─────────────────────────────────────────────────────────────────
 async function getDb() {
   if (db) return db;
   const app = await getFirebaseApp();
@@ -71,91 +68,107 @@ async function getDb() {
   return db;
 }
 
+// ── Notify listener ───────────────────────────────────────────────────────────
+function notifyListener(students) {
+  if (typeof activeListenerCallback === 'function') {
+    activeListenerCallback(
+      (students || readFallback()).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    );
+  }
+}
+
+// ── addStudent ────────────────────────────────────────────────────────────────
 async function addStudent(studentData) {
   const payload = normalizeStudent({ ...studentData, createdAt: new Date().toISOString() });
+
+  // Write to fallback immediately so the UI updates without waiting for Firestore
+  const list = readFallback();
+  payload.id = payload.id || ('local-' + Date.now());
+  list.unshift(payload);
+  writeFallback(list);
+  notifyListener(list);
+
   try {
     const database = await getDb();
-    const studentsRef = collection(database, 'students');
-    const docRef = doc(studentsRef);
+    const colRef   = collection(database, COLLECTION);
+    const docRef   = doc(colRef);
     payload.id = docRef.id;
-    await setDoc(docRef, payload);
-    return payload;
+    await setDoc(docRef, safePayload(payload));
+
+    // Replace the temp entry with the Firestore-issued ID
+    const updated = readFallback().map(s => (s.studentName === payload.studentName && String(s.id).startsWith('local-')) ? payload : s);
+    writeFallback(updated);
+    notifyListener(updated);
   } catch (error) {
-    console.error('Firestore addStudent failed:', error);
-    payload.id = 'local-' + Date.now();
-    const fallbackStudents = readFallbackStudents();
-    fallbackStudents.unshift(payload);
-    writeFallbackStudents(fallbackStudents);
-    notifyListener();
-    return payload;
+    console.error('Firestore addStudent failed (saved locally):', error);
   }
+  return payload;
 }
 
+// ── listenStudents ────────────────────────────────────────────────────────────
 function listenStudents(callback) {
   activeListenerCallback = callback;
+
+  // Immediately serve local data
+  callback(readFallback().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+
+  // Wire up Firestore real-time listener
   getDb().then(database => {
-    const studentsRef = collection(database, 'students');
-    const q = query(studentsRef, orderBy('createdAt', 'desc'));
-    return onSnapshot(q, (snapshot) => {
+    if (listenerUnsubscribe) { listenerUnsubscribe(); listenerUnsubscribe = null; }
+    const q = query(collection(database, COLLECTION), orderBy('createdAt', 'desc'));
+    listenerUnsubscribe = onSnapshot(q, snapshot => {
       const firestoreStudents = [];
-      snapshot.forEach((d) => firestoreStudents.push(normalizeStudent(d.data(), d.id)));
-      const fallbackStudents = readFallbackStudents();
-      const localOnly = fallbackStudents.filter(s => s && String(s.id).startsWith('local-'));
-      const combined = [...localOnly, ...firestoreStudents].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-      writeFallbackStudents(combined);
+      snapshot.forEach(d => firestoreStudents.push(normalizeStudent(d.data(), d.id)));
+      const localOnly = readFallback().filter(s => s && String(s.id).startsWith('local-'));
+      const combined  = [...localOnly, ...firestoreStudents].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      writeFallback(combined);
       callback(combined);
-    }, (error) => {
-      console.warn('Firestore student listener failed, using local fallback:', error);
-      callback(readFallbackStudents().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+    }, err => {
+      console.warn('Firestore student listener error (using local fallback):', err);
     });
   }).catch(() => {
-    callback(readFallbackStudents().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
-    return () => {};
+    // Already served local data above – nothing more to do
   });
-  return () => {};
+
+  return () => { if (listenerUnsubscribe) { listenerUnsubscribe(); listenerUnsubscribe = null; } };
 }
 
+// ── removeStudent ─────────────────────────────────────────────────────────────
 async function removeStudent(id) {
   if (!id) return;
-  const fallbackStudents = readFallbackStudents().filter(s => s.id !== id);
-  writeFallbackStudents(fallbackStudents);
-  notifyListener();
+  const updated = readFallback().filter(s => s.id !== id);
+  writeFallback(updated);
+  notifyListener(updated);
   try {
     const database = await getDb();
-    await deleteDoc(doc(database, 'students', id));
-  } catch (error) {
-    console.error('Firestore removeStudent failed:', error);
-  }
+    if (!String(id).startsWith('local-')) await deleteDoc(doc(database, COLLECTION, id));
+  } catch (e) { console.error('Firestore removeStudent failed:', e); }
 }
 
+// ── updateStudent ─────────────────────────────────────────────────────────────
 async function updateStudent(id, updates) {
   if (!id) return null;
-  const fallbackStudents = readFallbackStudents().map(s => s.id === id ? { ...s, ...updates } : s);
-  writeFallbackStudents(fallbackStudents);
-  notifyListener();
+  const updated = readFallback().map(s => s.id === id ? { ...s, ...updates } : s);
+  writeFallback(updated);
+  notifyListener(updated);
   try {
     const database = await getDb();
-    await updateDoc(doc(database, 'students', id), updates);
-    return { id, ...updates };
-  } catch (error) {
-    console.error('Firestore updateStudent failed:', error);
-    return { id, ...updates };
-  }
+    if (!String(id).startsWith('local-')) await updateDoc(doc(database, COLLECTION, id), safePayload(updates));
+  } catch (e) { console.error('Firestore updateStudent failed:', e); }
+  return { id, ...updates };
 }
 
+// ── clearAllStudents ──────────────────────────────────────────────────────────
 async function clearAllStudents() {
-  writeFallbackStudents([]);
-  notifyListener();
+  writeFallback([]);
+  notifyListener([]);
   try {
     const database = await getDb();
-    const studentsRef = collection(database, 'students');
-    const snapshot = await getDocs(studentsRef);
+    const snap  = await getDocs(collection(database, COLLECTION));
     const batch = writeBatch(database);
-    snapshot.forEach((d) => batch.delete(d.ref));
+    snap.forEach(d => batch.delete(d.ref));
     await batch.commit();
-  } catch (error) {
-    console.error('Firestore clearAllStudents failed:', error);
-  }
+  } catch (e) { console.error('Firestore clearAllStudents failed:', e); }
 }
 
 window.StudentDB = { addStudent, listenStudents, removeStudent, updateStudent, clearAllStudents };
