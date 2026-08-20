@@ -302,6 +302,7 @@ function markMessageAsRead(messageId) {
 
 // Export database operations globally
 window.DB = {
+  generateUniqueId,
   getApplications,
   getApplicationById,
   getToppers,
