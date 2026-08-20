@@ -63,12 +63,13 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Search execution logic
-  function performSearch(appId) {
+  async function performSearch(appId) {
     errorMsg.style.display = 'none';
     resultCard.style.display = 'none';
 
     // Query database layer
-    const application = window.DB.getApplicationById(appId);
+    const raw = window.DB.getApplicationById(appId);
+    const application = (raw && typeof raw.then === 'function') ? await raw : raw;
 
     if (!application) {
       errorMsg.textContent = `No application record found matching ID "${appId}". Please check the ID and try again.`;
