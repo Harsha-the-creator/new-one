@@ -410,16 +410,6 @@ img {
   background-clip: text;
 }
 
-.logo-link span {
-  white-space: nowrap;
-}
-
-@media (max-width: 1150px) and (min-width: 769px) {
-  .logo-link span {
-    display: none;
-  }
-}
-
 .logo-icon {
   width: 60px;
   height: 60px;
@@ -745,15 +735,6 @@ img {
 
   .logo-link {
     font-size: 1.05rem;
-  }
-  
-  .logo-link span {
-    white-space: normal;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    line-height: 1.2;
   }
 
   .header-nav {
