@@ -4,8 +4,10 @@
 
 document.addEventListener('DOMContentLoaded', () => {
   // Verify admin session login state first
-  if (typeof window.Auth !== 'undefined') {
+  if (window.Auth && typeof window.Auth.checkAuthAndRedirect === 'function') {
     window.Auth.checkAuthAndRedirect();
+  } else if (typeof window.checkDashboardAuth === 'function') {
+    window.checkDashboardAuth();
   }
 
   // DOM Elements
@@ -41,13 +43,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const clearStudentsBtn = document.getElementById('clearStudentsBtn');
   const studentTableBody = document.getElementById('studentTableBody');
   let studentRecords = [];
-  
+
   // Stats Elements
   const statTotal = document.getElementById('statTotal');
   const statPending = document.getElementById('statPending');
   const statApproved = document.getElementById('statApproved');
   const statRejected = document.getElementById('statRejected');
-  
+
   // Tab elements
   const tabBtnApps = document.getElementById('tabBtnApplications');
   const tabBtnMessages = document.getElementById('tabBtnMessages');
@@ -69,7 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const studentModalOverlay = document.getElementById('studentDetailsModal');
   const btnStudentModalClose = document.getElementById('btnStudentModalClose');
   const btnStudentModalCloseFooter = document.getElementById('btnStudentModalCloseFooter');
-  
+
   // Init page data loads
   loadDashboardData();
   initStudentRecords();
@@ -79,19 +81,19 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!btn) return;
     btn.addEventListener('click', (e) => {
       const targetTab = btn.getAttribute('data-tab');
-      
+
       tabBtnApps.classList.remove('active');
       tabBtnToppers.classList.remove('active');
       tabBtnMessages.classList.remove('active');
       if (tabBtnStudents) tabBtnStudents.classList.remove('active');
-      
+
       tabContentApps.classList.remove('active');
       tabContentToppers.classList.remove('active');
       tabContentMessages.classList.remove('active');
       if (tabContentStudents) tabContentStudents.classList.remove('active');
-      
+
       btn.classList.add('active');
-      
+
       if (targetTab === 'applications') {
         tabContentApps.classList.add('active');
         loadDashboardData();
@@ -185,14 +187,14 @@ document.addEventListener('DOMContentLoaded', () => {
   // Render Datatable applications list rows
   async function renderApplicationsTable() {
     tableBody.innerHTML = '';
-    
+
     // Fetch latest rows from DB layer safely handling sync array or Promise
     const rawApps = window.DB.getApplications();
     const appsList = Array.isArray(rawApps) ? rawApps : (await rawApps) || [];
     const query = searchInput.value.toLowerCase().trim();
     const selectedClass = classFilter.value;
     const selectedStatus = statusFilter.value;
-    
+
     // Apply searches & filters
     const filteredApps = appsList.filter(app => {
       if (!app) return false;
@@ -200,13 +202,13 @@ document.addEventListener('DOMContentLoaded', () => {
       const sId = app.id ? app.id.toLowerCase() : '';
       const pName = app.parentName ? app.parentName.toLowerCase() : '';
 
-      const matchQuery = sName.includes(query) || 
-                         sId.includes(query) || 
-                         pName.includes(query);
-                         
+      const matchQuery = sName.includes(query) ||
+        sId.includes(query) ||
+        pName.includes(query);
+
       const matchClass = selectedClass === '' ? true : app.classApplying === selectedClass;
       const matchStatus = selectedStatus === '' ? true : app.status === selectedStatus;
-      
+
       return matchQuery && matchClass && matchStatus;
     });
 
@@ -229,7 +231,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Populate rows
     filteredApps.forEach(app => {
       const tr = document.createElement('tr');
-      
+
       tr.innerHTML = `
         <td style="font-weight: 700; color: var(--brand);">${app.id}</td>
         <td style="font-weight: 600;">${app.studentName}</td>
@@ -250,7 +252,7 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
         </td>
       `;
-      
+
       tableBody.appendChild(tr);
     });
 
@@ -293,13 +295,13 @@ document.addEventListener('DOMContentLoaded', () => {
   async function processStatusChange(id, status) {
     const raw = window.DB.updateApplicationStatus(id, status);
     const updated = (raw && typeof raw.then === 'function') ? await raw : raw;
-    
+
     loadDashboardData();
-    
+
     const type = status === 'approved' ? 'success' : 'error';
     showToast(
-      'Application Updated', 
-      `Status of ${id} set to ${status.toUpperCase()}. Simulated email sent.`, 
+      'Application Updated',
+      `Status of ${id} set to ${status.toUpperCase()}. Simulated email sent.`,
       type
     );
   }
@@ -312,7 +314,7 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast('Application Database Cleared', 'All application records have been removed.', 'success');
   }
 
-  function compressImage(file, maxWidth = 400, maxHeight = 400, quality = 0.7) {
+  function compressImage(file, maxWidth = 350, maxHeight = 350, quality = 0.6) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = function (event) {
@@ -323,15 +325,9 @@ document.addEventListener('DOMContentLoaded', () => {
           let height = img.height;
 
           if (width > height) {
-            if (width > maxWidth) {
-              height = Math.round((height * maxWidth) / width);
-              width = maxWidth;
-            }
+            if (width > maxWidth) { height = Math.round((height * maxWidth) / width); width = maxWidth; }
           } else {
-            if (height > maxHeight) {
-              width = Math.round((width * maxHeight) / height);
-              height = maxHeight;
-            }
+            if (height > maxHeight) { width = Math.round((width * maxHeight) / height); height = maxHeight; }
           }
 
           canvas.width = width;
@@ -340,23 +336,19 @@ document.addEventListener('DOMContentLoaded', () => {
           ctx.drawImage(img, 0, 0, width, height);
           resolve(canvas.toDataURL('image/jpeg', quality));
         };
-        img.onerror = function (err) {
-          reject(err);
-        };
+        img.onerror = reject;
         img.src = event.target.result;
       };
-      reader.onerror = function (err) {
-        reject(err);
-      };
+      reader.onerror = reject;
       reader.readAsDataURL(file);
     });
   }
 
   async function addTopperEntry() {
-    const name = topperName?.value.trim();
-    const topperClassValue = topperClass?.value.trim();
-    const marks = topperMarks?.value.trim();
-    const file = topperPhoto?.files?.[0];
+    const name            = topperName?.value.trim();
+    const topperClassValue= topperClass?.value.trim();
+    const marks           = topperMarks?.value.trim();
+    const file            = topperPhoto?.files?.[0];
 
     if (!name || !topperClassValue || !marks) {
       showToast('Missing Topper Details', 'Please provide name, class, and marks for the topper.', 'error');
@@ -368,15 +360,18 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    addTopperBtn.disabled = true;
+    addTopperBtn.textContent = 'Saving...';
     try {
-      const imageData = await compressImage(file, 600, 400, 0.75);
-      window.DB.createTopper({
-        name,
-        class: topperClassValue,
-        marks,
-        image: imageData
-      });
-      topperName.value = '';
+      const imageData = await compressImage(file, 350, 350, 0.6);
+      // Use ToppersDB directly so we get the confirmed Firestore record
+      const TDB = window.ToppersDB;
+      if (TDB && typeof TDB.createTopper === 'function') {
+        await TDB.createTopper({ name, class: topperClassValue, marks, image: imageData });
+      } else {
+        window.DB.createTopper({ name, class: topperClassValue, marks, image: imageData });
+      }
+      topperName.value  = '';
       topperClass.value = '';
       topperMarks.value = '';
       topperPhoto.value = '';
@@ -385,11 +380,19 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (error) {
       console.error('Unable to add topper entry:', error);
       showToast('Add Failed', 'The topper entry could not be added.', 'error');
+    } finally {
+      addTopperBtn.disabled = false;
+      addTopperBtn.textContent = 'Add Topper';
     }
   }
 
-  function clearAllToppers() {
-    window.DB.clearToppers();
+  async function clearAllToppers() {
+    const TDB = window.ToppersDB;
+    if (TDB && typeof TDB.clearToppers === 'function') {
+      await TDB.clearToppers();
+    } else {
+      window.DB.clearToppers();
+    }
     renderToppersTable();
     showToast('Topper Highlights Cleared', 'Homepage topper entries have been removed.', 'success');
   }
@@ -739,10 +742,15 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderToppersTable() {
     if (!topperTableBody) return;
 
-    const toppers = window.DB.getToppers();
+    // Prefer live ToppersDB data, then fall back to window.DB.getToppers
+    const TDB = window.ToppersDB;
+    const toppers = (TDB && typeof TDB.getLocalToppers === 'function')
+      ? TDB.getLocalToppers()
+      : (window.DB ? window.DB.getToppers() : []);
+
     topperTableBody.innerHTML = '';
 
-    if (toppers.length === 0) {
+    if (!toppers || toppers.length === 0) {
       topperTableBody.innerHTML = `
         <tr>
           <td colspan="5" class="empty-table-placeholder">
@@ -754,9 +762,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     toppers.forEach(topper => {
+      const photoMarkup = topper.image
+        ? `<img src="${topper.image}" alt="${topper.name}" style="width:72px; height:72px; object-fit:cover; border-radius: .75rem; border: 1px solid var(--border);" />`
+        : `<div style="width:72px;height:72px;display:flex;align-items:center;justify-content:center;border:1px dashed var(--border);border-radius:.75rem;color:var(--text-muted);font-size:0.8rem;">No Photo</div>`;
+
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td><img src="${topper.image}" alt="${topper.name}" style="width:72px; height:72px; object-fit:cover; border-radius: .75rem; border: 1px solid var(--border);" /></td>
+        <td>${photoMarkup}</td>
         <td style="font-weight: 600;">${topper.name}</td>
         <td>${topper.class}</td>
         <td>${topper.marks}</td>
@@ -770,12 +782,21 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.querySelectorAll('.btn-delete').forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', async () => {
         const topperId = btn.getAttribute('data-id');
-        if (confirm('Delete this topper entry?')) {
-          window.DB.deleteTopper(topperId);
+        if (!confirm('Delete this topper entry?')) return;
+        try {
+          const TDB = window.ToppersDB;
+          if (TDB && typeof TDB.deleteTopper === 'function') {
+            await TDB.deleteTopper(topperId);
+          } else {
+            window.DB.deleteTopper(topperId);
+          }
           renderToppersTable();
           showToast('Topper Removed', 'The topper entry has been deleted.', 'success');
+        } catch (e) {
+          console.error('Delete topper failed:', e);
+          showToast('Delete Failed', 'Could not delete topper.', 'error');
         }
       });
     });
@@ -798,14 +819,14 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('mEmail').textContent = app.email;
     document.getElementById('mPrevSchool').textContent = app.prevSchool || 'N/A';
     document.getElementById('mAddress').textContent = app.address;
-    
+
     // File upload data details
     const mDocName = document.getElementById('mDocName');
     const mDocMeta = document.getElementById('mDocMeta');
-    
+
     mDocName.textContent = app.docName;
     mDocMeta.textContent = `${app.docType.split('/')[1].toUpperCase()} • ${formatBytes(app.docSize)}`;
-    
+
     // Bind modal viewer action
     btnModalViewDoc.onclick = () => {
       alert(`[SIMULATION] Viewing File Document: ${app.docName}\nType: ${app.docType}\nSize: ${formatBytes(app.docSize)}`);
@@ -833,12 +854,12 @@ document.addEventListener('DOMContentLoaded', () => {
   async function calculateStatsMetrics() {
     const rawList = window.DB.getApplications();
     const list = Array.isArray(rawList) ? rawList : (await rawList) || [];
-    
+
     const total = list.length;
     const pending = list.filter(a => a && a.status === 'pending').length;
     const approved = list.filter(a => a && a.status === 'approved').length;
     const rejected = list.filter(a => a && a.status === 'rejected').length;
-    
+
     statTotal.textContent = total;
     statPending.textContent = pending;
     statApproved.textContent = approved;
@@ -849,7 +870,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderMessagesTable() {
     messagesTableBody.innerHTML = '';
     const messages = window.DB.getContactMessages();
-    
+
     messagesCount.textContent = messages.length;
 
     if (clearMessagesBtn) {
@@ -872,9 +893,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Populate rows
     messages.forEach(msg => {
       const tr = document.createElement('tr');
-      
+
       const truncatedMessage = msg.message.length > 50 ? msg.message.substring(0, 50) + '...' : msg.message;
-      
+
       tr.innerHTML = `
         <td style="font-weight: 600;">${msg.name}</td>
         <td>${msg.email}</td>
@@ -892,7 +913,7 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
         </td>
       `;
-      
+
       messagesTableBody.appendChild(tr);
     });
 
@@ -908,7 +929,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const msgId = btn.getAttribute('data-id');
         const messages = window.DB.getContactMessages();
         const message = messages.find(m => m.id === msgId);
-        
+
         if (message) {
           alert(`From: ${message.name} (${message.email})\nSubject: ${message.subject}\nDate: ${formatDate(message.createdAt)}\n\nMessage:\n${message.message}`);
           window.DB.markMessageAsRead(msgId);
@@ -933,7 +954,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let messages = JSON.parse(localStorage.getItem('contact_messages')) || [];
     messages = messages.filter(m => m.id !== msgId);
     localStorage.setItem('contact_messages', JSON.stringify(messages));
-    
+
     showToast('Message Deleted', 'The message has been removed.', 'success');
     renderMessagesTable();
   }
@@ -969,7 +990,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
-    
+
     let svgIcon = '';
     if (type === 'success') {
       svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`;
